@@ -15,13 +15,11 @@ import java.time.LocalDateTime;
 @Builder
 public class BoardApiRequest {
 
-    private Long id;
-
     private String title;
 
-    private String writing;
+    private String contents;
 
-    private User user;
+    private Long userId;
 
-    private Category category;
+    private Long categoryId;
 }

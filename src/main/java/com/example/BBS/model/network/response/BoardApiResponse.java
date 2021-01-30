@@ -1,5 +1,6 @@
 package com.example.BBS.model.network.response;
 
+import com.example.BBS.model.entity.Board;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -25,4 +26,5 @@ public class BoardApiResponse {
     private Long userId;
 
     private Long categoryId;
+
 }

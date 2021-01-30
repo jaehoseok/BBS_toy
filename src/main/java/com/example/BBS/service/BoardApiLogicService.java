@@ -1,6 +1,7 @@
 package com.example.BBS.service;
 
 import com.example.BBS.model.entity.Board;
+import com.example.BBS.model.entity.Category;
 import com.example.BBS.model.entity.User;
 import com.example.BBS.model.network.PageResponse;
 import com.example.BBS.model.network.Pagination;
@@ -8,6 +9,7 @@ import com.example.BBS.model.network.request.BoardApiRequest;
 import com.example.BBS.model.network.response.BoardApiResponse;
 import com.example.BBS.model.network.response.UserApiResponse;
 import com.example.BBS.repository.BoardRepository;
+import com.example.BBS.repository.CategoryRepository;
 import com.example.BBS.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 
@@ -15,7 +17,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import javax.persistence.EntityManager;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -26,90 +30,39 @@ import java.util.stream.Collectors;
 public class BoardApiLogicService {
 
     private final BoardRepository boardRepository;
-
     private final UserRepository userRepository;
+    private final CategoryRepository categoryRepository;
 
-    public ResponseEntity create(BoardApiRequest request) {
+    @Transactional
+    public Board create(BoardApiRequest request) {
 
+        User findUser = userRepository.findById(request.getUserId())
+                .orElseThrow(() -> new IllegalStateException("찾았는데 없음"));
 
-        Board board = Board.builder()
-                .title(request.getTitle())
-                .writing(request.getWriting())
-                .inquiryNumber(0)
-                .updatedAt(LocalDateTime.now())
-                .user(request.getUser())
-                .category(request.getCategory())
-                .build();
+        Category category = categoryRepository.findById(request.getCategoryId())
+                .orElseThrow(() -> new IllegalStateException("찾았는데 없음"));
 
-        boardRepository.save(board);
+        Board board = Board.createBoard(request.getTitle(),
+                request.getContents(),
+                findUser,
+                category);
 
-        BoardApiResponse boardApiResponse = BoardApiResponse.builder()
-                .id(board.getId())
-                .title(board.getTitle())
-                .writing(board.getWriting())
-                .inquiryNumber(board.getInquiryNumber())
-                .updatedAt(board.getUpdatedAt())
-                .userId(board.getUser().getId())
-                .categoryId(board.getCategory().getId())
-                .build();
-
-        return ResponseEntity.ok(boardApiResponse);
+        Board saveBoard = boardRepository.save(board);
+        return saveBoard;
     }
 
-    public ResponseEntity read(Long id) {
 
-        return ResponseEntity.ok(boardRepository.findById(id)
-                .map(board -> board.setInquiryNumber(board.getInquiryNumber()+1))
-        );
+    @Transactional
+    public Board update(Long id,BoardApiRequest request) {
+        Category category = categoryRepository.findById(request.getCategoryId())
+                .orElseThrow(() -> new IllegalStateException("찾았는데 없음"));
+
+        Board board = boardRepository.findById(id)
+                .orElseThrow(() -> new IllegalStateException("찾았는데 없음"));
+
+        board.setCategory(category);
+        return board;
     }
 
-    public ResponseEntity update(BoardApiRequest request) {
 
-        Optional<Board> optionalBoard = boardRepository.findById(request.getId());
-
-        if(optionalBoard.isPresent()) {
-            if (request.getUser().getId().equals(optionalBoard.get().getId())) {
-                optionalBoard.get().setTitle(request.getTitle())
-                        .setWriting(request.getWriting())
-                        .setUpdatedAt(LocalDateTime.now());
-
-                boardRepository.save(optionalBoard.get());
-                return ResponseEntity.ok(optionalBoard.get());
-            }
-            else return ResponseEntity.ok("ERROR : 수정권한 없음");
-        }
-        else return ResponseEntity.ok("ERROR : 없는 게시물");
-    }
-
-    public ResponseEntity delete(BoardApiRequest request) {
-
-        Optional<Board> optionalBoard = boardRepository.findById(request.getId());
-
-        if (optionalBoard.isPresent()) {
-            if(request.getUser().getId().equals(optionalBoard.get().getUser().getId())) {
-                boardRepository.deleteById(request.getId());
-                return ResponseEntity.ok("삭제 완료");
-            } else return ResponseEntity.ok("ERROR : 삭제권한 없음");
-        } else return ResponseEntity.ok("ERROR : 없는 데이터");
-    }
-
-    public ResponseEntity serach(Pageable pageable) {
-
-        Page<Board> boards = boardRepository.findAll(pageable);
-
-        List<Board> boardApiResponseList = boards.stream().collect(Collectors.toList());
-
-        Pagination pagination = Pagination.builder()
-                .totalPages(boards.getTotalPages())
-                .totalElements(boards.getTotalElements())
-                .currentPage(boards.getNumber())
-                .currentElements(boards.getNumberOfElements())
-                .build();
-
-        PageResponse pageResponse = PageResponse.builder()
-                .datas(boardApiResponseList)
-                .pagination(pagination)
-                .build();
-        return ResponseEntity.ok(pageResponse);
-    }
 }

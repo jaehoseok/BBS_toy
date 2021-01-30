@@ -2,79 +2,67 @@ package com.example.BBS.service;
 
 import com.example.BBS.model.entity.User;
 import com.example.BBS.model.network.request.UserApiRequest;
+import com.example.BBS.model.network.request.UserUpdateRequest;
 import com.example.BBS.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import javax.persistence.EntityManager;
+import javax.persistence.EntityManagerFactory;
 import java.time.LocalDateTime;
 import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class UserApiLogicService {
 
     private final UserRepository userRepository;
+    private final EntityManager em;
 
-
-    public ResponseEntity create(UserApiRequest request) {
-
-        if(userRepository.findByPhoneNumber(request.getPhoneNumber())==null) {
-
-            User user = User.builder()
-                    .name(request.getName())
-                    .password(request.getPassword())
-                    .registeredAt(LocalDateTime.now())
-                    .lastLoginAt(LocalDateTime.now())
-                    .phoneNumber(request.getPhoneNumber())
-                    .build();
-
-            User newUser = userRepository.save(user);
-
-            return ResponseEntity.ok(newUser);
+    @Transactional
+    public User create(UserApiRequest request) {
+        if(userRepository.findByEmail(request.getEmail()).isPresent()){
+            throw new IllegalStateException("이미 있는 이메일입니다.");
         }
-        else return ResponseEntity.ok("ERROR : 중복된 NAME");
+
+        User user = User.builder()
+                .email(request.getEmail())
+                .name(request.getName())
+                .phoneNumber(request.getPhoneNumber())
+                .password(request.getPassword())
+                .build();
+
+        User save = userRepository.save(user);
+        return save;
     }
 
-    public ResponseEntity read(Long id) {
-        Optional<User> optionalUser = userRepository.findById(id);
-        optionalUser
-                .map(user -> user.setLastLoginAt(LocalDateTime.now()));
-        return ResponseEntity.ok(optionalUser);
+    public User read(Long id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new IllegalStateException("찾았는데 없음"));
+        return user;
     }
 
-    public ResponseEntity update(UserApiRequest request) {
 
-        Optional<User> optionalUser = userRepository.findById(request.getId());
+    @Transactional
+    public User update(Long id, UserUpdateRequest request) {
+        User findUser = userRepository.findById(id)
+                .orElseThrow(() -> new IllegalStateException("찾았는데 없음"));
 
-        if(optionalUser.isPresent()) {
-            if(request.getId().equals(optionalUser.get().getId())) {
-                optionalUser
-                        .map(user -> {
-                            user.setName(request.getName())
-                                    .setPassword(request.getPassword())
-                                    .setPhoneNumber(request.getPhoneNumber());
-                            return user;
-                        })
-                        .map(user -> userRepository.save(user));
-
-                return ResponseEntity.ok(optionalUser);
-            } else return ResponseEntity.ok("ERROR : 수정권한 없음");
-        }
-        else return ResponseEntity.ok("ERROR : 없는 유저");
+        findUser.setName(request.getName());
+        findUser.setPhoneNumber(request.getPhoneNumber());
+        findUser.setPassword(request.getPassword());
+        return findUser;
     }
 
-    public ResponseEntity delete(UserApiRequest request) {
+    public void delete(Long id) {
 
-        Optional<User> optionalUser = userRepository.findById(request.getId());
+        User findUser = userRepository.findById(id)
+                .orElseThrow(() -> new IllegalStateException("찾았는데 없음"));
 
-        if(optionalUser.isPresent()) {
-            if(request.getId().equals(optionalUser.get().getId())) {
-                userRepository.deleteById(request.getId());
-                return ResponseEntity.ok("삭제 완료");
-            } else return ResponseEntity.ok("ERROR : 삭제권한 없음");
-        }
-        else return ResponseEntity.ok("ERROR : 없는 데이터");
+        userRepository.delete(findUser);
     }
 
 }
