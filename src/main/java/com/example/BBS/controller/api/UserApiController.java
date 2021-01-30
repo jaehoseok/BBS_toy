@@ -40,8 +40,7 @@ public class UserApiController implements UserApiInterface{
 
     @Override
     @DeleteMapping("{id}")
-    public ResponseEntity delete(@PathVariable Long id) {
-        userApiLogicService.delete(id);
-        return ResponseEntity.ok("");
+    public ResponseEntity delete(@RequestBody UserApiRequest request) {
+        return userApiLogicService.delete(request);
     }
 }

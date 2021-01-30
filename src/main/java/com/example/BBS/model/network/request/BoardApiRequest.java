@@ -1,5 +1,7 @@
 package com.example.BBS.model.network.request;
 
+import com.example.BBS.model.entity.Category;
+import com.example.BBS.model.entity.User;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -19,11 +21,7 @@ public class BoardApiRequest {
 
     private String writing;
 
-    private Integer inquiryNumber;
+    private User user;
 
-    private LocalDateTime updatedAt;
-
-    private Long userId;
-
-    private Long categoryId;
+    private Category category;
 }

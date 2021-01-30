@@ -12,5 +12,5 @@ public interface UserApiInterface{
 
     ResponseEntity update (UserApiRequest request);
 
-    ResponseEntity delete (Long id);
+    ResponseEntity delete (UserApiRequest request);
 }

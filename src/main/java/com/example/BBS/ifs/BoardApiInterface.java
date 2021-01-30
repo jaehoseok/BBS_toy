@@ -15,7 +15,7 @@ public interface BoardApiInterface {
 
     ResponseEntity update (BoardApiRequest request);
 
-    ResponseEntity delete (Long id);
+    ResponseEntity delete (BoardApiRequest request);
 
     ResponseEntity search(Pageable pageable);
 }

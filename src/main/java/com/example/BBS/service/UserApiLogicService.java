@@ -19,17 +19,21 @@ public class UserApiLogicService {
 
     public ResponseEntity create(UserApiRequest request) {
 
-        User user = User.builder()
-                .name(request.getName())
-                .password(request.getPassword())
-                .registeredAt(LocalDateTime.now())
-                .lastLoginAt(LocalDateTime.now())
-                .phoneNumber(request.getPhoneNumber())
-                .build();
+        if(userRepository.findByPhoneNumber(request.getPhoneNumber())==null) {
 
-        User newUser = userRepository.save(user);
+            User user = User.builder()
+                    .name(request.getName())
+                    .password(request.getPassword())
+                    .registeredAt(LocalDateTime.now())
+                    .lastLoginAt(LocalDateTime.now())
+                    .phoneNumber(request.getPhoneNumber())
+                    .build();
 
-        return ResponseEntity.ok(newUser);
+            User newUser = userRepository.save(user);
+
+            return ResponseEntity.ok(newUser);
+        }
+        else return ResponseEntity.ok("ERROR : 중복된 NAME");
     }
 
     public ResponseEntity read(Long id) {
@@ -43,22 +47,32 @@ public class UserApiLogicService {
 
         Optional<User> optionalUser = userRepository.findById(request.getId());
 
-        optionalUser
-                .map(user -> {
-                    user.setName(request.getName())
-                            .setPassword(request.getPassword())
-                            .setPhoneNumber(request.getPhoneNumber());
-                    return user;
-                })
-                .map(user -> userRepository.save(user));
+        if(optionalUser.isPresent()) {
+            if(request.getId().equals(optionalUser.get().getId())) {
+                optionalUser
+                        .map(user -> {
+                            user.setName(request.getName())
+                                    .setPassword(request.getPassword())
+                                    .setPhoneNumber(request.getPhoneNumber());
+                            return user;
+                        })
+                        .map(user -> userRepository.save(user));
 
-        return ResponseEntity.ok(optionalUser);
+                return ResponseEntity.ok(optionalUser);
+            } else return ResponseEntity.ok("ERROR : 수정권한 없음");
+        }
+        else return ResponseEntity.ok("ERROR : 없는 유저");
     }
 
-    public ResponseEntity delete(Long id) {
-        if(userRepository.findById(id).isPresent()) {
-            userRepository.deleteById(id);
-            return ResponseEntity.ok("");
+    public ResponseEntity delete(UserApiRequest request) {
+
+        Optional<User> optionalUser = userRepository.findById(request.getId());
+
+        if(optionalUser.isPresent()) {
+            if(request.getId().equals(optionalUser.get().getId())) {
+                userRepository.deleteById(request.getId());
+                return ResponseEntity.ok("삭제 완료");
+            } else return ResponseEntity.ok("ERROR : 삭제권한 없음");
         }
         else return ResponseEntity.ok("ERROR : 없는 데이터");
     }

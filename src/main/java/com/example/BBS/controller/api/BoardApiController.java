@@ -39,10 +39,9 @@ public class BoardApiController implements BoardApiInterface{
     }
 
     @Override
-    @DeleteMapping("{id}")
-    public ResponseEntity delete(@PathVariable Long id) {
-        boardApiLogicService.delete(id);
-        return ResponseEntity.ok("");
+    @DeleteMapping("")
+    public ResponseEntity delete(@RequestBody BoardApiRequest request) {
+        return boardApiLogicService.delete(request);
     }
 
     @Override
