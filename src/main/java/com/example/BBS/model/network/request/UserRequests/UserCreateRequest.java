@@ -1,28 +1,21 @@
-package com.example.BBS.model.network.response;
+package com.example.BBS.model.network.request.UserRequests;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
-
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class UserApiResponse {
+public class UserCreateRequest {
 
-    private Long id;
+    private String email;
 
     private String name;
 
     private String password;
 
-    private LocalDateTime registeredAt;
-
-    private LocalDateTime lastLoginAt;
-
     private String phoneNumber;
-
 }

@@ -1,10 +1,9 @@
 package com.example.BBS.controller.api;
 
-import com.example.BBS.ifs.CategoryApiInterface;
-import com.example.BBS.model.network.Header;
-import com.example.BBS.model.network.request.CategoryApiRequest;
-import com.example.BBS.model.network.response.CategoryApiResponse;
+import com.example.BBS.model.network.request.CategoryRequests.CategoryCreateRequest;
+import com.example.BBS.model.network.request.CategoryRequests.CategoryUpdateRequest;
 import com.example.BBS.service.CategoryApiLogicService;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -13,33 +12,29 @@ import org.springframework.web.bind.annotation.*;
 @Slf4j
 @RestController
 @RequestMapping("/api/category")
-public class CategoryApiController implements CategoryApiInterface{
+@RequiredArgsConstructor
+public class CategoryApiController{
 
-    @Autowired
-    private CategoryApiLogicService categoryApiLogicService;
+    private final CategoryApiLogicService categoryApiLogicService;
 
-    @Override
     @PostMapping("")
-    public ResponseEntity create(@RequestBody CategoryApiRequest request) {
-        return categoryApiLogicService.create(request);
+    public ResponseEntity create(@RequestBody CategoryCreateRequest request) {
+        return ResponseEntity.ok(categoryApiLogicService.create(request));
     }
 
-    @Override
     @GetMapping("{id}")
     public ResponseEntity read(@PathVariable Long id) {
-        return categoryApiLogicService.read(id);
+        return ResponseEntity.ok(categoryApiLogicService.read(id));
     }
 
-    @Override
-    @PutMapping("")
-    public ResponseEntity update(@RequestBody CategoryApiRequest request) {
-        return categoryApiLogicService.update(request);
+    @PutMapping("{id}")
+    public ResponseEntity update(@RequestBody CategoryUpdateRequest request, @PathVariable Long id) {
+        return ResponseEntity.ok(categoryApiLogicService.update(request, id));
     }
 
-    @Override
     @DeleteMapping("{id}")
     public ResponseEntity delete(@PathVariable Long id) {
         categoryApiLogicService.delete(id);
-        return ResponseEntity.ok("");
+        return ResponseEntity.ok().build();
     }
 }

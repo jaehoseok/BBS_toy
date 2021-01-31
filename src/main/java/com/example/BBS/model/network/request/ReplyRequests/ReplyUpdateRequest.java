@@ -1,4 +1,4 @@
-package com.example.BBS.model.network.response;
+package com.example.BBS.model.network.request.ReplyRequests;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -9,9 +9,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class CategoryApiResponse {
-
-    private Long id;
-
-    private String type;
+public class ReplyUpdateRequest {
+    private String contents;
 }

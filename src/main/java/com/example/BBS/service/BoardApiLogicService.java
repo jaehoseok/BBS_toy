@@ -1,13 +1,17 @@
 package com.example.BBS.service;
 
 import com.example.BBS.model.entity.Board;
+import com.example.BBS.model.entity.Category;
 import com.example.BBS.model.entity.User;
 import com.example.BBS.model.network.PageResponse;
 import com.example.BBS.model.network.Pagination;
-import com.example.BBS.model.network.request.BoardApiRequest;
-import com.example.BBS.model.network.response.BoardApiResponse;
-import com.example.BBS.model.network.response.UserApiResponse;
+import com.example.BBS.model.network.request.BoardRequests.BoardCreateRequest;
+import com.example.BBS.model.network.request.BoardRequests.BoardUpdateRequest;
+import com.example.BBS.model.network.response.BoardResponses.BoardCreateResponse;
+import com.example.BBS.model.network.response.BoardResponses.BoardReadResponse;
+import com.example.BBS.model.network.response.BoardResponses.BoardUpdateResponse;
 import com.example.BBS.repository.BoardRepository;
+import com.example.BBS.repository.CategoryRepository;
 import com.example.BBS.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 
@@ -15,89 +19,132 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class BoardApiLogicService {
 
     private final BoardRepository boardRepository;
-
     private final UserRepository userRepository;
+    private final CategoryRepository categoryRepository;
 
-    public ResponseEntity create(BoardApiRequest request) {
+    @Transactional
+    public BoardCreateResponse create(BoardCreateRequest request) {
 
+        User findUser = userRepository.findById(request.getUserId())
+                .orElseThrow(() -> new IllegalArgumentException("ERROR : 없는 유저"));
+        Category findCategory = categoryRepository.findById(request.getCategoryId())
+                .orElseThrow(() -> new IllegalArgumentException("ERROR : 없는 카테고리"));
 
-        Board board = Board.builder()
-                .title(request.getTitle())
-                .writing(request.getWriting())
-                .inquiryNumber(0)
-                .updatedAt(LocalDateTime.now())
-                .user(request.getUser())
-                .category(request.getCategory())
-                .build();
-
-        boardRepository.save(board);
-
-        BoardApiResponse boardApiResponse = BoardApiResponse.builder()
-                .id(board.getId())
-                .title(board.getTitle())
-                .writing(board.getWriting())
-                .inquiryNumber(board.getInquiryNumber())
-                .updatedAt(board.getUpdatedAt())
-                .userId(board.getUser().getId())
-                .categoryId(board.getCategory().getId())
-                .build();
-
-        return ResponseEntity.ok(boardApiResponse);
-    }
-
-    public ResponseEntity read(Long id) {
-
-        return ResponseEntity.ok(boardRepository.findById(id)
-                .map(board -> board.setInquiryNumber(board.getInquiryNumber()+1))
+        Board createdBoard = Board.createBoard(
+                request.getTitle(),
+                request.getContents(),
+                findUser,
+                findCategory
         );
+        Board savedBoard = boardRepository.save(createdBoard);
+
+        BoardCreateResponse response = BoardCreateResponse.builder()
+                .registeredAt(savedBoard.getRegisteredAt())
+                .contents(savedBoard.getContents())
+                .title(savedBoard.getTitle())
+                .categoryId(savedBoard.getCategory().getId())
+                .userId(savedBoard.getUser().getId())
+                .build();
+
+        return response;
     }
 
-    public ResponseEntity update(BoardApiRequest request) {
+    public BoardReadResponse read(Long id) {
+        Board findboard = boardRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("ERROR : 게시글 없음"));
 
-        Optional<Board> optionalBoard = boardRepository.findById(request.getId());
+        BoardReadResponse response = BoardReadResponse.builder()
+                .registeredAt(findboard.getRegisteredAt())
+                .updatedAt(findboard.getUpdatedAt())
+                .contents(findboard.getContents())
+                .title(findboard.getTitle())
+                .categoryId(findboard.getCategory().getId())
+                .userId(findboard.getUser().getId())
+                .build();
 
-        if(optionalBoard.isPresent()) {
-            if (request.getUser().getId().equals(optionalBoard.get().getId())) {
-                optionalBoard.get().setTitle(request.getTitle())
-                        .setWriting(request.getWriting())
-                        .setUpdatedAt(LocalDateTime.now());
-
-                boardRepository.save(optionalBoard.get());
-                return ResponseEntity.ok(optionalBoard.get());
-            }
-            else return ResponseEntity.ok("ERROR : 수정권한 없음");
-        }
-        else return ResponseEntity.ok("ERROR : 없는 게시물");
+        return response;
     }
 
-    public ResponseEntity delete(BoardApiRequest request) {
+    @Transactional
+    public BoardUpdateResponse contentsUpdate(BoardUpdateRequest request, Long id) {
+        Board findBoard = boardRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("ERROR : 해당 게시글 없음"));
 
-        Optional<Board> optionalBoard = boardRepository.findById(request.getId());
+        findBoard.updateContents(request.getContents());
 
-        if (optionalBoard.isPresent()) {
-            if(request.getUser().getId().equals(optionalBoard.get().getUser().getId())) {
-                boardRepository.deleteById(request.getId());
-                return ResponseEntity.ok("삭제 완료");
-            } else return ResponseEntity.ok("ERROR : 삭제권한 없음");
-        } else return ResponseEntity.ok("ERROR : 없는 데이터");
+        BoardUpdateResponse updatedBoard = BoardUpdateResponse.builder()
+                .registeredAt(findBoard.getRegisteredAt())
+                .updatedAt(findBoard.getUpdatedAt())
+                .contents(findBoard.getContents())
+                .title(findBoard.getTitle())
+                .categoryId(findBoard.getCategory().getId())
+                .userId(findBoard.getUser().getId())
+                .build();
+
+        return updatedBoard;
+    }
+    @Transactional
+    public BoardUpdateResponse titleUpdate(BoardUpdateRequest request, Long id) {
+        Board findBoard = boardRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("ERROR : 해당 게시글 없음"));
+
+        findBoard.updateTitle(request.getTitle());
+
+        BoardUpdateResponse updatedBoard = BoardUpdateResponse.builder()
+                .registeredAt(findBoard.getRegisteredAt())
+                .updatedAt(findBoard.getUpdatedAt())
+                .contents(findBoard.getContents())
+                .title(findBoard.getTitle())
+                .categoryId(findBoard.getCategory().getId())
+                .userId(findBoard.getUser().getId())
+                .build();
+        return updatedBoard;
+    }
+    @Transactional
+    public BoardUpdateResponse categoryUpdate(BoardUpdateRequest request, Long id) {
+        Category findCategory = categoryRepository.findById(request.getCategoryId())
+                .orElseThrow(() -> new IllegalArgumentException("ERROR : 해당 카테고리 없음"));
+        Board findBoard = boardRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("ERROR : 해당 게시글 없음"));
+
+        findBoard.updateCategory(findCategory);
+
+        BoardUpdateResponse updatedBoard = BoardUpdateResponse.builder()
+                .registeredAt(findBoard.getRegisteredAt())
+                .updatedAt(findBoard.getUpdatedAt())
+                .contents(findBoard.getContents())
+                .title(findBoard.getTitle())
+                .categoryId(findBoard.getCategory().getId())
+                .userId(findBoard.getUser().getId())
+                .build();
+
+        return updatedBoard;
     }
 
-    public ResponseEntity serach(Pageable pageable) {
+    @Transactional
+    public void delete(Long id) {
+        Board findBoard = boardRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("ERROR : 해당 게시글 없음"));
+
+        boardRepository.delete(findBoard);
+    }
+
+    public PageResponse serach(Pageable pageable) {
 
         Page<Board> boards = boardRepository.findAll(pageable);
 
-        List<Board> boardApiResponseList = boards.stream().collect(Collectors.toList());
+        List<Board> boardReadResponseList = boards.stream().collect(Collectors.toList());
 
         Pagination pagination = Pagination.builder()
                 .totalPages(boards.getTotalPages())
@@ -107,9 +154,9 @@ public class BoardApiLogicService {
                 .build();
 
         PageResponse pageResponse = PageResponse.builder()
-                .datas(boardApiResponseList)
+                .datas(boardReadResponseList)
                 .pagination(pagination)
                 .build();
-        return ResponseEntity.ok(pageResponse);
+        return pageResponse;
     }
 }

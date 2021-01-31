@@ -1,16 +1,14 @@
 package com.example.BBS.service;
 
-import com.example.BBS.ifs.CategoryApiInterface;
 import com.example.BBS.model.entity.Category;
-import com.example.BBS.model.network.Header;
-import com.example.BBS.model.network.request.CategoryApiRequest;
-import com.example.BBS.model.network.response.CategoryApiResponse;
+import com.example.BBS.model.network.request.CategoryRequests.CategoryCreateRequest;
+import com.example.BBS.model.network.request.CategoryRequests.CategoryUpdateRequest;
+import com.example.BBS.model.network.response.CategoryResponses.CategoryCreateResponse;
+import com.example.BBS.model.network.response.CategoryResponses.CategoryReadResponse;
+import com.example.BBS.model.network.response.CategoryResponses.CategoryUpdateResponse;
 import com.example.BBS.repository.CategoryRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -18,41 +16,53 @@ public class CategoryApiLogicService{
 
     private final CategoryRepository categoryRepository;
 
-    public ResponseEntity create(CategoryApiRequest request) {
+    public CategoryCreateResponse create(CategoryCreateRequest request) {
 
-        Category category = Category.builder()
-                .type(request.getType())
+        Category createdCategory = Category.createCategory(request.getType());
+
+        Category savedCategory = categoryRepository.save(createdCategory);
+
+        CategoryCreateResponse response = CategoryCreateResponse.builder()
+                .registeredAt(savedCategory.getRegisteredAt())
+                .type(savedCategory.getType())
                 .build();
 
-        Category newCategory = categoryRepository.save(category);
+        return response;
 
-        return ResponseEntity.ok(newCategory);
     }
 
-    public ResponseEntity read(Long id) {
-        return ResponseEntity.ok(categoryRepository.findById(id));
+    public CategoryReadResponse read(Long id) {
+        Category findCategory = categoryRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("ERROR : 해당 카테고리 없음"));
+
+        CategoryReadResponse response = CategoryReadResponse.builder()
+                .registeredAt(findCategory.getRegisteredAt())
+                .updatedAt(findCategory.getUpdatedAt())
+                .type(findCategory.getType())
+                .build();
+
+        return response;
     }
 
-    public ResponseEntity update(CategoryApiRequest request) {
+    public CategoryUpdateResponse update(CategoryUpdateRequest request, Long id) {
 
-        Optional<Category> optionalCategory = categoryRepository.findById(request.getId());
+        Category findCategory = categoryRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("ERROR : 해당 카테고리 없음"));
 
-       optionalCategory
-                .map(category -> {
-                    category.setId(request.getId())
-                        .setType(request.getType());
-                return category;
-                })
-                .map(category -> categoryRepository.save(category));
+        findCategory.updateType(request.getType());
 
-       return ResponseEntity.ok(optionalCategory);
+        CategoryUpdateResponse response = CategoryUpdateResponse.builder()
+                .registeredAt(findCategory.getRegisteredAt())
+                .updatedAt(findCategory.getUpdatedAt())
+                .type(findCategory.getType())
+                .build();
+        return response;
     }
 
-    public ResponseEntity delete(Long id) {
-        if(categoryRepository.findById(id).isPresent()) {
-            categoryRepository.deleteById(id);
-            return ResponseEntity.ok("");
-        }
-        else return ResponseEntity.ok("ERROR : 없는 데이터");
+    public void delete(Long id) {
+        Category findCategory = categoryRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("ERROR : 해당 카테고리 없음"));
+
+        categoryRepository.delete(findCategory);
     }
 }

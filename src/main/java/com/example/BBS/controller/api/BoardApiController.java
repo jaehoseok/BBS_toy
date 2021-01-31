@@ -1,7 +1,7 @@
 package com.example.BBS.controller.api;
 
-import com.example.BBS.ifs.BoardApiInterface;
-import com.example.BBS.model.network.request.BoardApiRequest;
+import com.example.BBS.model.network.request.BoardRequests.BoardCreateRequest;
+import com.example.BBS.model.network.request.BoardRequests.BoardUpdateRequest;
 import com.example.BBS.service.BoardApiLogicService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -16,37 +16,41 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/board")
 @RequiredArgsConstructor
-public class BoardApiController implements BoardApiInterface{
+public class BoardApiController{
 
     private final BoardApiLogicService boardApiLogicService;
 
-    @Override
     @PostMapping("")
-    public ResponseEntity create(@RequestBody BoardApiRequest request) {
-        return boardApiLogicService.create(request);
+    public ResponseEntity create(@RequestBody BoardCreateRequest request) {
+        return ResponseEntity.ok(boardApiLogicService.create(request));
     }
 
-    @Override
     @GetMapping("{id}")
     public ResponseEntity read(@PathVariable Long id) {
-        return boardApiLogicService.read(id);
+        return ResponseEntity.ok(boardApiLogicService.read(id));
     }
 
-    @Override
-    @PutMapping("")
-    public ResponseEntity update(@RequestBody BoardApiRequest request) {
-        return boardApiLogicService.update(request);
+    @PutMapping("/contents/{id}")
+    public ResponseEntity contentsUpdate(@RequestBody BoardUpdateRequest request, @PathVariable Long id) {
+        return ResponseEntity.ok(boardApiLogicService.contentsUpdate(request, id));
+    }
+    @PutMapping("/title/{id}")
+    public ResponseEntity titleUpdate(@RequestBody BoardUpdateRequest request, @PathVariable Long id) {
+        return ResponseEntity.ok(boardApiLogicService.titleUpdate(request, id));
+    }
+    @PutMapping("/category/{id}")
+    public ResponseEntity categoryUpdate(@RequestBody BoardUpdateRequest request, @PathVariable Long id) {
+        return ResponseEntity.ok(boardApiLogicService.categoryUpdate(request, id));
     }
 
-    @Override
-    @DeleteMapping("")
-    public ResponseEntity delete(@RequestBody BoardApiRequest request) {
-        return boardApiLogicService.delete(request);
+    @DeleteMapping("{id}")
+    public ResponseEntity delete(@PathVariable Long id) {
+        boardApiLogicService.delete(id);
+        return ResponseEntity.ok().build();
     }
 
-    @Override
     @GetMapping("")
     public ResponseEntity search(@PageableDefault(sort = "id", direction = Sort.Direction.DESC, size = 20) Pageable pageable) {
-        return boardApiLogicService.serach(pageable);
+        return ResponseEntity.ok(boardApiLogicService.serach(pageable));
     }
 }

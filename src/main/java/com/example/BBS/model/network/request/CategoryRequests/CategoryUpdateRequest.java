@@ -1,4 +1,4 @@
-package com.example.BBS.model.network.request;
+package com.example.BBS.model.network.request.CategoryRequests;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -9,8 +9,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class CategoryApiRequest {
-    private Long id;
+public class CategoryUpdateRequest {
 
     private String type;
 }

@@ -2,38 +2,60 @@ package com.example.BBS.model.entity;
 
 import lombok.*;
 import lombok.experimental.Accessors;
-import org.apache.tomcat.jni.Local;
-import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import javax.persistence.*;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.util.List;
 
-@Data
+@Getter
 @NoArgsConstructor
-@AllArgsConstructor
+@AllArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
 @Builder
 @Accessors(chain = true)
-@ToString(exclude = {"user","category"})
-public class Board {
+@EntityListeners(AuditingEntityListener.class)
+public class Board extends BaseEntity{
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "board_id")
     private Long id;
 
     private String title;
 
-    private String writing;
+    private String contents;
 
-    private Integer inquiryNumber;
 
-    @LastModifiedDate
-    private LocalDateTime updatedAt;
-
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
     private User user;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "category_id")
     private Category category;
+
+    @OneToMany(mappedBy = "board")
+    private List<Reply> replyList;
+
+    public static Board createBoard(String title, String contents, User user, Category category){
+        Board createdBoard = Board.builder()
+                .title(title)
+                .contents(contents)
+                .user(user)
+                .category(category)
+                .build();
+
+        return createdBoard;
+    }
+    public void updateContents(String contents){
+        this.contents = contents;
+    }
+
+    public void updateTitle(String title){
+        this.title = title;
+    }
+
+    public void updateCategory(Category category){
+        this.category = category;
+    }
 }

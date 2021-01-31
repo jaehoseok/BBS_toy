@@ -1,14 +1,14 @@
 package com.example.BBS.service;
 
 import com.example.BBS.model.entity.User;
-import com.example.BBS.model.network.request.UserApiRequest;
+import com.example.BBS.model.network.request.UserRequests.UserCreateRequest;
+import com.example.BBS.model.network.request.UserRequests.UserUpdateRequest;
+import com.example.BBS.model.network.response.UserResponses.UserCreateResponse;
+import com.example.BBS.model.network.response.UserResponses.UserReadResponse;
+import com.example.BBS.model.network.response.UserResponses.UserUpdateResponse;
 import com.example.BBS.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-
-import java.time.LocalDateTime;
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -17,64 +17,69 @@ public class UserApiLogicService {
     private final UserRepository userRepository;
 
 
-    public ResponseEntity create(UserApiRequest request) {
+    public UserCreateResponse create(UserCreateRequest request) {
+        if(userRepository.findByEmail(request.getEmail()).isPresent())
+            throw new IllegalStateException("ERROR : 이메일 중복");
 
-        if(userRepository.findByPhoneNumber(request.getPhoneNumber())==null) {
+        User createdUser = User.createUser(request.getEmail(), request.getName(),request.getPassword(),request.getPhoneNumber());
+        User saveUser = userRepository.save(createdUser);
 
-            User user = User.builder()
-                    .name(request.getName())
-                    .password(request.getPassword())
-                    .registeredAt(LocalDateTime.now())
-                    .lastLoginAt(LocalDateTime.now())
-                    .phoneNumber(request.getPhoneNumber())
-                    .build();
-
-            User newUser = userRepository.save(user);
-
-            return ResponseEntity.ok(newUser);
-        }
-        else return ResponseEntity.ok("ERROR : 중복된 NAME");
+        UserCreateResponse response = UserCreateResponse.builder()
+                .email(saveUser.getEmail())
+                .name(saveUser.getName())
+                .phoneNumber(saveUser.getPhoneNumber())
+                .registeddAt(saveUser.getRegisteredAt())
+                .build();
+        return response;
     }
 
-    public ResponseEntity read(Long id) {
-        Optional<User> optionalUser = userRepository.findById(id);
-        optionalUser
-                .map(user -> user.setLastLoginAt(LocalDateTime.now()));
-        return ResponseEntity.ok(optionalUser);
+    public UserReadResponse read(Long id) {
+        User findUser = userRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("ERROR : 해당 유저 없음"));
+
+        UserReadResponse response = UserReadResponse.builder()
+                .email(findUser.getEmail())
+                .name(findUser.getName())
+                .registeddAt(findUser.getRegisteredAt())
+                .updatedAt(findUser.getUpdatedAt())
+                .build();
+
+        return response;
     }
 
-    public ResponseEntity update(UserApiRequest request) {
+    public UserUpdateResponse passwordUpdate(UserUpdateRequest request, Long id) {
+        User findUser = userRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("ERROR : 해당 유저 없음"));
 
-        Optional<User> optionalUser = userRepository.findById(request.getId());
+        findUser.updatePassword(request.getPassword());
 
-        if(optionalUser.isPresent()) {
-            if(request.getId().equals(optionalUser.get().getId())) {
-                optionalUser
-                        .map(user -> {
-                            user.setName(request.getName())
-                                    .setPassword(request.getPassword())
-                                    .setPhoneNumber(request.getPhoneNumber());
-                            return user;
-                        })
-                        .map(user -> userRepository.save(user));
+        UserUpdateResponse response = UserUpdateResponse.builder()
+                .email(findUser.getEmail())
+                .name(findUser.getName())
+                .registeddAt(findUser.getRegisteredAt())
+                .updatedAt(findUser.getUpdatedAt())
+                .build();
+        return response;
+    }
+    public UserUpdateResponse phoneNumberUpdate(UserUpdateRequest request, Long id) {
+        User findUser = userRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("ERROR : 해당 유저 없음"));
 
-                return ResponseEntity.ok(optionalUser);
-            } else return ResponseEntity.ok("ERROR : 수정권한 없음");
-        }
-        else return ResponseEntity.ok("ERROR : 없는 유저");
+        findUser.updatePhoneNumber(request.getPhoneNumber());
+
+        UserUpdateResponse response = UserUpdateResponse.builder()
+                .email(findUser.getEmail())
+                .name(findUser.getName())
+                .registeddAt(findUser.getRegisteredAt())
+                .updatedAt(findUser.getUpdatedAt())
+                .build();
+        return response;
     }
 
-    public ResponseEntity delete(UserApiRequest request) {
-
-        Optional<User> optionalUser = userRepository.findById(request.getId());
-
-        if(optionalUser.isPresent()) {
-            if(request.getId().equals(optionalUser.get().getId())) {
-                userRepository.deleteById(request.getId());
-                return ResponseEntity.ok("삭제 완료");
-            } else return ResponseEntity.ok("ERROR : 삭제권한 없음");
-        }
-        else return ResponseEntity.ok("ERROR : 없는 데이터");
+    public void delete(Long id) {
+        User findUser = userRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("ERROR : 해당 유저 없음"));
+        userRepository.delete(findUser);
     }
 
 }
